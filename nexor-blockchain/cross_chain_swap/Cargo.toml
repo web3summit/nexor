@@ -1,0 +1,39 @@
+[package]
+name = "cross_chain_swap"
+version = "0.1.0"
+authors = ["[your_name] <[your_email]>"]
+edition = "2021"
+
+[dependencies]
+ink = { version = "6.0.0-alpha", default-features = false, features = ["unstable-hostfn"] }
+
+# Codec for message serialization
+codec = { package = "parity-scale-codec", version = "3.0", default-features = false, features = ["derive"] }
+scale-info = { version = "2.0", default-features = false, features = ["derive"] }
+
+# ISMP/Hyperbridge dependencies
+ismp = { version = "1.2", default-features = false }
+pallet-ismp = { version = "2503.1", default-features = false }
+ismp-parachain = { version = "2503.1", default-features = false }
+pallet-ismp-runtime-api = { version = "2503.1", default-features = false }
+
+[dev-dependencies]
+ink_e2e = "6.0.0-alpha"
+drink = { version = "0.8" }
+
+[lib]
+path = "lib.rs"
+
+[features]
+default = ["std"]
+std = [
+    "ink/std",
+    "codec/std",
+    "scale-info/std",
+    "ismp/std",
+    "pallet-ismp/std",
+    "ismp-parachain/std",
+    "pallet-ismp-runtime-api/std",
+]
+ink-as-dependency = []
+e2e-tests = []
