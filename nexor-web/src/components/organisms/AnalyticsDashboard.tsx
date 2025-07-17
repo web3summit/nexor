@@ -37,11 +37,12 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'ytd' | 'all'>('30d');
-  
-  // Fetch analytics data
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchAnalytics = async () => {
       setLoading(true);
+      setError(null);
       
       try {
         // In a real implementation, we would call a GraphQL query
@@ -55,6 +56,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         setAnalytics(mockData);
       } catch (error) {
         console.error('Error fetching analytics:', error);
+        setError('Failed to fetch analytics data');
       } finally {
         setLoading(false);
       }
@@ -108,6 +110,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     });
   };
   
+  if (loading) return <div className="h-64 flex items-center justify-center"><motion.div className="animate-spin h-8 w-8 text-primary" /></div>;
+  if (error) return <div className="h-64 flex items-center justify-center">{error}</div>;
+
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Date Range Selector */}
@@ -139,11 +144,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             <div>
               <p className="text-gray-400 text-sm">Total Volume</p>
               <h3 className="text-2xl font-bold">
-                {loading ? (
-                  <div className="h-8 w-24 bg-gray-700 animate-pulse rounded"></div>
-                ) : (
-                  formatCurrency(analytics?.totalVolumeUsd || 0)
-                )}
+                {formatCurrency(analytics?.totalVolumeUsd || 0)}
               </h3>
             </div>
             <div className="bg-purple-500 bg-opacity-20 p-3 rounded-full">
@@ -160,11 +161,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             <div>
               <p className="text-gray-400 text-sm">Total Payments</p>
               <h3 className="text-2xl font-bold">
-                {loading ? (
-                  <div className="h-8 w-16 bg-gray-700 animate-pulse rounded"></div>
-                ) : (
-                  analytics?.totalPayments.toLocaleString() || 0
-                )}
+                {analytics?.totalPayments.toLocaleString() || 0}
               </h3>
             </div>
             <div className="bg-blue-500 bg-opacity-20 p-3 rounded-full">
@@ -181,11 +178,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             <div>
               <p className="text-gray-400 text-sm">Success Rate</p>
               <h3 className="text-2xl font-bold">
-                {loading ? (
-                  <div className="h-8 w-16 bg-gray-700 animate-pulse rounded"></div>
-                ) : (
-                  `${(analytics?.successRate || 0).toFixed(1)}%`
-                )}
+                {(analytics?.successRate || 0).toFixed(1)}%
               </h3>
             </div>
             <div className="bg-green-500 bg-opacity-20 p-3 rounded-full">
@@ -201,11 +194,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             <div>
               <p className="text-gray-400 text-sm">Average Payment</p>
               <h3 className="text-2xl font-bold">
-                {loading ? (
-                  <div className="h-8 w-20 bg-gray-700 animate-pulse rounded"></div>
-                ) : (
-                  formatCurrency(analytics?.averagePaymentAmount || 0)
-                )}
+                {formatCurrency(analytics?.averagePaymentAmount || 0)}
               </h3>
             </div>
             <div className="bg-yellow-500 bg-opacity-20 p-3 rounded-full">
@@ -222,24 +211,15 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       <Card className="p-6" glassmorphism>
         <h2 className="text-xl font-semibold mb-6">Payment Volume</h2>
         
-        {loading ? (
-          <div className="h-64 flex items-center justify-center">
-            <svg className="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
+        <div className="h-64">
+          <div className="flex items-end justify-between h-48 mb-4">
+            {renderChartBars()}
           </div>
-        ) : (
-          <div className="h-64">
-            <div className="flex items-end justify-between h-48 mb-4">
-              {renderChartBars()}
-            </div>
-            <div className="flex justify-between text-sm text-gray-400">
-              <span>Last 7 Days</span>
-              <span>Total: {formatCurrency(getChartData().reduce((sum, day) => sum + day.volumeUsd, 0))}</span>
-            </div>
+          <div className="flex justify-between text-sm text-gray-400">
+            <span>Last 7 Days</span>
+            <span>Total: {formatCurrency(getChartData().reduce((sum, day) => sum + day.volumeUsd, 0))}</span>
           </div>
-        )}
+        </div>
       </Card>
       
       {/* Payments by Token */}
@@ -247,14 +227,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         <Card className="p-6" glassmorphism>
           <h2 className="text-xl font-semibold mb-6">Payments by Token</h2>
           
-          {loading ? (
-            <div className="h-64 flex items-center justify-center">
-              <svg className="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            </div>
-          ) : analytics?.paymentsByToken.length === 0 ? (
+          {analytics?.paymentsByToken.length === 0 ? (
             <div className="h-64 flex items-center justify-center">
               <p className="text-gray-400">No data available</p>
             </div>
@@ -297,14 +270,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         <Card className="p-6" glassmorphism>
           <h2 className="text-xl font-semibold mb-6">Payments by Status</h2>
           
-          {loading ? (
-            <div className="h-64 flex items-center justify-center">
-              <svg className="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            </div>
-          ) : analytics?.paymentsByStatus.length === 0 ? (
+          {analytics?.paymentsByStatus.length === 0 ? (
             <div className="h-64 flex items-center justify-center">
               <p className="text-gray-400">No data available</p>
             </div>
@@ -395,7 +361,7 @@ function generateMockAnalytics(merchantId: string, dateRange: string): Analytics
   
   // Generate daily data
   const dailyData: AnalyticsData['paymentsByDay'] = [];
-  let currentDate = new Date(startDate);
+  const currentDate = new Date(startDate);
   
   while (currentDate <= endDate) {
     // More recent days have higher volume for a realistic trend

@@ -2,14 +2,12 @@
  * Wallet-related type definitions
  */
 
-export type ChainType = 'polkadot' | 'kusama' | 'ethereum' | 'solana';
+export type ChainType = 'evm' | 'substrate' | 'solana';
 
 export interface WalletAccount {
   address: string;
-  name?: string;
-  source: string;
-  type?: string;
-  genesisHash?: string;
+  name: string;
+  chain: ChainType;
 }
 
 export interface ConnectOptions {
@@ -18,6 +16,10 @@ export interface ConnectOptions {
 }
 
 export interface MultiChainWallet {
+  id: string;
+  name: string;
+  icon: string;
+  chains: ChainType[];
   isInstalled: (walletId: string, chain: ChainType) => boolean;
   connect: (options: ConnectOptions) => Promise<WalletAccount | undefined>;
   disconnect: () => Promise<void>;
@@ -33,9 +35,9 @@ export interface MultiChainWallet {
 }
 
 export interface WalletState {
-  isConnected: boolean;
-  account?: WalletAccount;
-  chain?: ChainType;
+  accounts: WalletAccount[];
+  activeAccount: WalletAccount | null;
+  activeChain: ChainType | null;
   isLoading: boolean;
   error?: string;
 }

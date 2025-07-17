@@ -1,5 +1,30 @@
 import { useCallback } from 'react';
 
+type AnalyticsProperty = string | number | boolean | null | undefined;
+type AnalyticsProperties = Record<string, AnalyticsProperty | AnalyticsProperty[] | Record<string, AnalyticsProperty>>;
+
+declare global {
+  interface Window {
+    analytics?: {
+      track: (eventName: string, properties: AnalyticsProperties) => void;
+      page: (properties: AnalyticsProperties) => void;
+    };
+  }
+}
+
+const analyticsClient = {
+  track: (eventName: string, properties: AnalyticsProperties) => {
+    // TODO: Implement analytics tracking
+    console.log(`[Analytics] Track event: ${eventName}`, properties);
+  },
+  page: (properties: AnalyticsProperties) => {
+    // TODO: Implement page view tracking
+    console.log(`[Analytics] Page view: ${window.location.pathname}`, properties);
+  }
+};
+
+window.analytics = analyticsClient;
+
 export type EventType = 
   | 'widget_opened'
   | 'widget_closed'

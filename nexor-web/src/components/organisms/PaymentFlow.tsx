@@ -54,27 +54,22 @@ interface TokenBalance {
 interface PaymentFlowProps {
   recipientAddress: string;
   recipientName?: string;
-  amount: number;
+  amount: string;
   currency: string;
-  targetTokenSymbol?: string;
-  onSuccess?: (paymentResult: PaymentResult) => void;
-  onFailure?: (error: PaymentError) => void;
-  onCancel?: () => void;
+  onComplete: (result: any) => void;
   onClose?: () => void;
-  title?: string;
 }
 
 interface PaymentDetails {
   amount?: string;
   recipientAddress?: string;
   recipientName?: string;
-  paymentId?: string; // Made optional to match usage
-  id?: string; // Added to match usage in handleConfirmPayment
+  paymentId?: string; 
+  id?: string; 
   transactionHash?: string;
   status: 'pending' | 'confirmed' | 'failed';
   error?: string;
   sourceAddress?: string;
-  // Additional properties used in the component
   sourceToken?: string;
   destinationToken?: string;
   sourceChain?: string;
@@ -106,7 +101,7 @@ interface PaymentError {
 
 interface WalletAccount {
   address: string;
-  name?: string;
+  name: string;
   chain: ChainType;
 }
 
@@ -186,14 +181,25 @@ interface PaymentSummaryProps {
 }
 
 interface TokenSelectorProps {
-  onTokenSelect: (token: Token) => Promise<void>;
-  targetTokenSymbol?: string;
+  onSelect: (token: Token) => Promise<void>;
+  selectedToken?: string;
   isLoading?: boolean;
 }
 
 interface WalletConnectorProps {
-  onWalletConnect: (chain: ChainType, walletId: string) => Promise<void>;
+  onConnect: (chain: ChainType, walletId: string) => Promise<void>;
   isLoading?: boolean;
+}
+
+type StrictAny<T> = T extends object ? { [K in keyof T]: StrictAny<T[K]> } : T;
+
+declare module '../../types/wallet' {
+  export interface WalletAccount {
+    address: string;
+    name: string;
+    chain: string;
+  }
+  export type ChainType = 'evm' | 'substrate' | 'solana';
 }
 
 export const PaymentFlow: React.FC<PaymentFlowProps> = ({
@@ -201,13 +207,9 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
   recipientName = '',
   amount,
   currency,
-  targetTokenSymbol,
-  onSuccess,
-  onFailure,
-  onCancel,
+  onComplete,
   onClose,
-  title = 'Complete Payment'
-}): React.ReactElement => {
+}) => {
   // State management
   const [currentStep, setCurrentStep] = useState<PaymentStep>('connect-wallet');
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
@@ -253,9 +255,6 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
       });
     }
   }, [amount, recipientAddress, recipientName, paymentInfo]);
-
-  // Removing the trackEvent wrapper function as we're now using trackAnalyticsEvent directly
-  // with the proper interface structure throughout the component
 
   // Handler for wallet connection
   const handleConnectWallet = async (chain: ChainType, walletId: string): Promise<void> => {
@@ -308,38 +307,6 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
     }
   };
 
-  // Handler for swap completion
-  const handleSwapComplete = async (result: SwapResult): Promise<void> => {
-    if (result.success) {
-      trackAnalyticsEvent({ 
-        eventType: 'token_swap_completed', 
-        tokenSymbol: result.token.symbol,
-        amount: result.amount,
-        metadata: { 
-          destinationToken: result.token.symbol,
-          txHash: result.transactionHash,
-          exchangeRate: result.exchangeRate
-        }
-      });
-      
-      setSelectedToken(result.token);
-      setCurrentStep('confirm-payment');
-    } else {
-      trackAnalyticsEvent({
-        eventType: 'token_swap_initiated',
-        tokenSymbol: fromToken?.symbol || '',
-        error: result.error || 'Unknown error',
-        metadata: {
-          success: false,
-          destination_token: result.token?.symbol
-        }
-      });
-      
-      setError(`Swap failed: ${result.error || 'Unknown error'}`);
-      setCurrentStep('failed');
-    }
-  };
-
   // Handler for token selection
   const handleTokenSelect = async (token: Token): Promise<void> => {
     setSelectedToken(token);
@@ -374,20 +341,20 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
         }));
         
         // Check if token matches required token
-        if (targetTokenSymbol && token.symbol !== targetTokenSymbol) {
+        if (currency && token.symbol !== currency) {
           // Token doesn't match required token, need to swap
           setFromToken(token);
           
           // Find target token in available tokens
           const targetToken = tokenBalances.find(t => 
-            t.symbol === targetTokenSymbol
+            t.symbol === currency
           ) || {
-            symbol: targetTokenSymbol,
+            symbol: currency,
             chain: token.chain,
             balance: '0',
             token: {
-              symbol: targetTokenSymbol,
-              name: targetTokenSymbol,
+              symbol: currency,
+              name: currency,
               chain: token.chain,
               address: '',
               decimals: 18
@@ -403,8 +370,8 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
             // Initiate token swap
             await (tokenSwap as any).initiateSwap({
               fromToken: token,
-              toTokenSymbol: targetTokenSymbol,
-              amount: amount
+              toTokenSymbol: currency,
+              amount: Number(amount)
             });
           } catch (swapError) {
             console.error('Swap initiation error:', swapError);
@@ -444,6 +411,38 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
     }
   };
 
+  // Handler for swap completion
+  const handleSwapComplete = async (result: SwapResult): Promise<void> => {
+    if (result.success) {
+      trackAnalyticsEvent({ 
+        eventType: 'token_swap_completed', 
+        tokenSymbol: result.token.symbol,
+        amount: result.amount,
+        metadata: { 
+          destinationToken: result.token.symbol,
+          txHash: result.transactionHash,
+          exchangeRate: result.exchangeRate
+        }
+      });
+      
+      setSelectedToken(result.token);
+      setCurrentStep('confirm-payment');
+    } else {
+      trackAnalyticsEvent({
+        eventType: 'token_swap_initiated',
+        tokenSymbol: fromToken?.symbol || '',
+        error: result.error || 'Unknown error',
+        metadata: {
+          success: false,
+          destination_token: result.token?.symbol
+        }
+      });
+      
+      setError(`Swap failed: ${result.error || 'Unknown error'}`);
+      setCurrentStep('failed');
+    }
+  };
+
   // Handler for cancellation
   const handleCancel = (): void => {
     trackAnalyticsEvent({ 
@@ -465,8 +464,8 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
     });
     setError(null);
     
-    if (onCancel) {
-      onCancel();
+    if (onClose) {
+      onClose();
     }
   };
 
@@ -561,189 +560,178 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
         error: errorMessage
       });
       setCurrentStep('failed');
-      
-      if (onFailure) {
-        onFailure({
-          error: errorMessage,
-          step: 'confirmation'
-        });
-      }
     } finally {
       setIsProcessing(false);
     }
-};
+  };
 
-const getStepNumber = (step: PaymentStep): number => {
-  const stepOrder: PaymentStep[] = [
-    'connect-wallet',
-    'select-token',
-    'swap-tokens',
-    'confirm-payment',
-    'processing',
-    'complete',
-    'failed'
-  ];
-  
-  const index = stepOrder.indexOf(step);
-  return index >= 0 ? index + 1 : 1;
-};
+  const getStepNumber = (step: PaymentStep): number => {
+    const stepOrder: PaymentStep[] = [
+      'connect-wallet',
+      'select-token',
+      'swap-tokens',
+      'confirm-payment',
+      'processing',
+      'complete',
+      'failed'
+    ];
+    
+    const index = stepOrder.indexOf(step);
+    return index >= 0 ? index + 1 : 1;
+  };
 
-const renderStep = () => {
-  switch (currentStep) {
-    case 'connect-wallet':
-      return (
-        <VStack spacing={4} align="stretch">
-          <Text>Connect your wallet to continue with the payment.</Text>
-          <WalletConnector
-            onWalletConnect={handleConnectWallet}
-            isLoading={isConnecting}
-          />
-        </VStack>
-      );
+  const renderStep = () => {
+    switch (currentStep) {
+      case 'connect-wallet':
+        return (
+          <VStack spacing={4} align="stretch">
+            <Text>Connect your wallet to continue with the payment.</Text>
+            <WalletConnector 
+              onConnect={handleConnectWallet} 
+              loading={isConnecting} 
+            />
+          </VStack>
+        );
 
-    case 'select-token':
-      return (
-        <VStack spacing={4} align="stretch">
-          <PaymentSummary 
-            details={{
-              amount: amount.toString(),
-              sourceToken: currency,
-              destinationToken: currency,
-              sourceChain: wallet?.activeChain || 'Unknown',
-              destinationChain: wallet?.activeChain || 'Unknown',
-              totalAmount: amount.toString(),
-              merchantName: recipientName,
-              paymentDescription: `Payment to ${recipientName || recipientAddress.substring(0, 8) + '...'}`
-            }}
-            showDetails={true}
-          />
-          <Text>Select a token to pay with:</Text>
-          <TokenSelector
-            onTokenSelect={handleTokenSelect}
-            targetTokenSymbol={targetTokenSymbol}
-            isLoading={isCheckingBalance}
-          />
-        </VStack>
-      );
+      case 'select-token':
+        return (
+          <VStack spacing={4} align="stretch">
+            <PaymentSummary 
+              details={{
+                amount: amount.toString(),
+                sourceToken: currency,
+                destinationToken: currency,
+                sourceChain: wallet?.activeChain || 'Unknown',
+                destinationChain: wallet?.activeChain || 'Unknown',
+                totalAmount: amount.toString(),
+                merchantName: recipientName,
+                paymentDescription: `Payment to ${recipientName || recipientAddress.substring(0, 8) + '...'}`
+              }}
+              showDetails={true}
+            />
+            <Text>Select a token to pay with:</Text>
+            <TokenSelector 
+              onSelect={handleTokenSelect} 
+              selectedToken={currency} 
+              loading={isCheckingBalance} 
+            />
+          </VStack>
+        );
 
-    case 'swap-tokens':
-      return (
-        <VStack spacing={4} align="stretch">
-          <Text>You need to swap tokens to complete this payment.</Text>
-          <TokenSwap
-            fromTokenSymbol={fromToken?.symbol || ''}
-            toTokenSymbol={toToken?.symbol || ''}
-            amount={amount}
-            onSwapComplete={handleSwapComplete}
-            onCancel={handleCancel}
-          />
-        </VStack>
-      );
+      case 'swap-tokens':
+        return (
+          <VStack spacing={4} align="stretch">
+            <Text>You need to swap tokens to complete this payment.</Text>
+            <TokenSwap 
+              onSwap={handleSwapComplete} 
+            />
+          </VStack>
+        );
 
-    case 'confirm-payment':
-      return (
-        <VStack spacing={4} align="stretch">
-          <PaymentSummary 
-            address={recipientAddress}
-            name={recipientName}
-            amount={amount.toString()}
-            currency={currency}
-            token={selectedToken || undefined}
-          />
-          <Button 
-            colorScheme="blue" 
-            size="lg" 
-            onClick={handleConfirmPayment}
-            isLoading={isProcessing}
-            leftIcon={<Icon as={CheckIcon} />}
-          >
-            Confirm Payment
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={handleCancel}
-            isDisabled={isProcessing}
-          >
-            Cancel
-          </Button>
-        </VStack>
-      );
-
-    case 'processing':
-      return (
-        <VStack spacing={6} align="center">
-          <Spinner size="xl" color="blue.500" />
-          <Text>Processing your payment...</Text>
-        </VStack>
-      );
-
-    case 'complete':
-      return (
-        <VStack spacing={6} align="center">
-          <Box
-            bg="green.100"
-            color="green.700"
-            p={4}
-            borderRadius="full"
-            boxSize="80px"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-          >
-            <Icon as={CheckIcon} boxSize={10} />
-          </Box>
-          <Text fontSize="xl" fontWeight="bold">Payment Complete!</Text>
-          <Text>Your transaction has been confirmed.</Text>
-          {paymentInfo?.transactionHash && (
-            <Text fontSize="sm">
-              Transaction Hash: {paymentInfo.transactionHash.slice(0, 10)}...{paymentInfo.transactionHash.slice(-10)}
-            </Text>
-          )}
-          <Button
-            colorScheme="blue"
-            onClick={() => {
-              if (onSuccess && selectedToken) {
-                onSuccess({
-                  paymentId: paymentInfo?.paymentId || '',
-                  transactionHash: paymentInfo?.transactionHash || '',
-                  amount: amount.toString(),
-                  token: selectedToken,
-                  timestamp: Date.now()
-                });
-              }
-            }}
-          >
-            Done
-          </Button>
-        </VStack>
-      );
-
-    case 'failed':
-      return (
-        <VStack spacing={6} align="center">
-          <Box 
-            bg="red.100" 
-            p={4} 
-            borderRadius="full"
-          >
-            <Icon as={CloseIcon} w={10} h={10} color="red.500" />
-          </Box>
-          <Text fontSize="xl" fontWeight="bold">Payment Failed</Text>
-          {error && (
-            <Text color="red.500" textAlign="center">
-              {error}
-            </Text>
-          )}
-          <HStack spacing={4} mt={2}>
-            <Button leftIcon={<CloseIcon />} variant="outline" onClick={handleCancel}>
+      case 'confirm-payment':
+        return (
+          <VStack spacing={4} align="stretch">
+            <PaymentSummary 
+              address={recipientAddress}
+              name={recipientName}
+              amount={amount.toString()}
+              currency={currency}
+              token={selectedToken || undefined}
+            />
+            <Button 
+              colorScheme="blue" 
+              size="lg" 
+              onClick={handleConfirmPayment}
+              isLoading={isProcessing}
+              leftIcon={<Icon as={CheckIcon} />}
+            >
+              Confirm Payment
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={handleCancel}
+              isDisabled={isProcessing}
+            >
               Cancel
             </Button>
-            <Button leftIcon={<RepeatIcon />} colorScheme="blue" onClick={handleRetry}>
-              Try Again
+          </VStack>
+        );
+
+      case 'processing':
+        return (
+          <VStack spacing={6} align="center">
+            <Spinner size="xl" color="blue.500" />
+            <Text>Processing your payment...</Text>
+          </VStack>
+        );
+
+      case 'complete':
+        return (
+          <VStack spacing={6} align="center">
+            <Box
+              bg="green.100"
+              color="green.700"
+              p={4}
+              borderRadius="full"
+              boxSize="80px"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Icon as={CheckIcon} boxSize={10} />
+            </Box>
+            <Text fontSize="xl" fontWeight="bold">Payment Complete!</Text>
+            <Text>Your transaction has been confirmed.</Text>
+            {paymentInfo?.transactionHash && (
+              <Text fontSize="sm">
+                Transaction Hash: {paymentInfo.transactionHash.slice(0, 10)}...{paymentInfo.transactionHash.slice(-10)}
+              </Text>
+            )}
+            <Button
+              colorScheme="blue"
+              onClick={() => {
+                if (onComplete && selectedToken) {
+                  onComplete({
+                    paymentId: paymentInfo?.paymentId || '',
+                    transactionHash: paymentInfo?.transactionHash || '',
+                    amount: amount.toString(),
+                    token: selectedToken,
+                    timestamp: Date.now()
+                  });
+                }
+              }}
+            >
+              Done
             </Button>
-          </HStack>
-        </VStack>
-      );
+          </VStack>
+        );
+
+      case 'failed':
+        return (
+          <VStack spacing={6} align="center">
+            <Box 
+              bg="red.100" 
+              p={4} 
+              borderRadius="full"
+            >
+              <Icon as={CloseIcon} w={10} h={10} color="red.500" />
+            </Box>
+            <Text fontSize="xl" fontWeight="bold">Payment Failed</Text>
+            {error && (
+              <Text color="red.500" textAlign="center">
+                {error}
+              </Text>
+            )}
+            <HStack spacing={4} mt={2}>
+              <Button leftIcon={<CloseIcon />} variant="outline" onClick={handleCancel}>
+                Cancel
+              </Button>
+              <Button leftIcon={<RepeatIcon />} colorScheme="blue" onClick={handleRetry}>
+                Try Again
+              </Button>
+            </HStack>
+          </VStack>
+        );
 
       default:
         return <div>Unknown step</div>;
@@ -764,7 +752,7 @@ const renderStep = () => {
       {/* Header */}
       <HStack justify="space-between" align="center" mb={4}>
         <Text fontSize="xl" fontWeight="bold">
-          {title || 'Complete Payment'}
+          Payment Flow
         </Text>
         <Text fontSize="md" color="gray.500">
           {currentStep !== 'complete' && currentStep !== 'failed' && (
@@ -795,3 +783,5 @@ const renderStep = () => {
     </Box>
   );
 };
+
+export default PaymentFlow;
