@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nexor Contract Tester
+
+A minimal Next.js frontend for testing deployed ink! contracts using the Polkadot API ink-sdk.
+
+## Features
+
+- Connect to local ink! node (ws://127.0.0.1:9944)
+- Test cross_chain_swap contract functionality
+- Merchant registration and payment processing
+- Real-time activity logging
+- Mock wallet integration for testing
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+1. Make sure you have a local ink! node running on port 9944
+2. Deploy your cross_chain_swap contract to the local node
+3. Note the contract address for testing
+
+### Installation
+
+```bash
+npm install
+```
+
+### Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to access the contract tester.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Contract Integration
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This frontend is designed to test the following contract functions:
 
-## Learn More
+### Cross Chain Swap Contract
+- `register_merchant(stablecoin, settlement_chain)` - Register merchant preferences
+- `process_payment(merchant, token, chain, amount)` - Process customer payment
+- `get_payment_status(payment_id)` - Get payment details
+- `get_merchant_preferences()` - Get merchant settings
+- `is_registered_merchant()` - Check registration status
+- `get_payment_count()` - Get total payments
 
-To learn more about Next.js, take a look at the following resources:
+### Key Registry Contract
+- `register_tag(tag)` - Register user tag
+- `lookup_address(tag)` - Get address by tag
+- `get_tag()` - Get current user's tag
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Usage
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Connect to Node**: Click "Connect to Local Node" to establish connection
+2. **Contract Address**: Enter your deployed contract address
+3. **Connect to Contract**: Load contract metadata and establish connection
+4. **Test Functions**: Use the UI to test various contract functions
+5. **Monitor Logs**: Check the activity log for transaction results
 
-## Deploy on Vercel
+## Architecture
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Frontend**: Next.js 15 with TypeScript and Tailwind CSS
+- **Blockchain**: Polkadot API with ink-sdk for contract interaction
+- **Backend**: GraphQL integration ready (connects to nexor-back)
+- **Testing**: DRink testing framework integration (hackathon requirement)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Next Steps
+
+1. Set up proper type generation using papi CLI
+2. Implement real wallet integration
+3. Add GraphQL backend connection
+4. Implement DRink testing suite
+5. Deploy to production environment
+
+## Development Notes
+
+This is a minimal testing interface created for hackathon development. The current implementation uses simulated connections and mock data for rapid prototyping. For production use, you'll need to:
+
+- Generate proper type definitions using `papi add` and `papi ink add`
+- Set up real WebSocket providers
+- Implement proper wallet integration
+- Add error handling and validation
+- Connect to the GraphQL backend service

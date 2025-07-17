@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "@types/node": "^24.0.14",
-    "framer-motion": "^12.23.6",
-    "qrcode.react": "^4.2.0"
-  }
-}
