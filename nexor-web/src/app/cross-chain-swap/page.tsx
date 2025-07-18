@@ -1,5 +1,15 @@
-import ContractTester from '@/components/ContractTester';
+'use client';
+
+import { useState } from 'react';
+import { ContractTester } from '@/components/ContractTester';
 
 export default function CrossChainSwapPage() {
-  return <ContractTester />;
+  const [connectedAccount, setConnectedAccount] = useState<string | null>(null);
+
+  return (
+    <ContractTester 
+      connectedAccount={connectedAccount}
+      setConnectedAccount={setConnectedAccount}
+    />
+  );
 }
