@@ -1,0 +1,33 @@
+[package]
+name = "asset_hub_hyperbridge"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <you@example.com>"]
+description = "Ink! v6 contract on AssetHub integrating Hyperbridge Token Gateway via chain extension"
+license = "Apache-2.0"
+repository = "https://github.com/your/repo"
+categories = ["smart-contracts", "blockchain"]
+
+[dependencies]
+ink = { version = "5.1.0", default-features = false }
+scale = { package = "parity-scale-codec", version = "3.7", default-features = false, features = ["derive"] }
+scale-info = { version = "2.1.1", default-features = false, features = ["derive"] }
+
+[lib]
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[profile.release]
+lto = true
+opt-level = "z"
+codegen-units = 1
+panic = "abort"
+overflow-checks = false
+
+[features]
+default = ["std"]
+std = [
+    "ink/std",
+    "scale/std",
+    "scale-info/std",
+]
