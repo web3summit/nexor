@@ -1,0 +1,32 @@
+2025-07-18 10:58:51 error: Unhandled rejection: Prisma Client could not locate the Query Engine for runtime "debian-openssl-3.0.x".
+
+This happened because Prisma Client was generated for "darwin-arm64", but the actual deployment required "debian-openssl-3.0.x".
+Add "debian-openssl-3.0.x" to `binaryTargets` in the "schema.prisma" file and run `prisma generate` after saving it:
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+The following locations have been searched:
+  /home/ferdinand/nexor/nexor/nexor-back/node_modules/.prisma/client
+  /home/ferdinand/nexor/nexor/nexor-back/node_modules/@prisma/client
+  /Users/eydrent/Documents/web3summit/nexor/nexor-back/node_modules/@prisma/client
+  /tmp/prisma-engines
+  /home/ferdinand/nexor/nexor/nexor-back/prisma
+2025-07-18 10:58:51 error: Unhandled rejection: Prisma Client could not locate the Query Engine for runtime "debian-openssl-3.0.x".
+
+This happened because Prisma Client was generated for "darwin-arm64", but the actual deployment required "debian-openssl-3.0.x".
+Add "debian-openssl-3.0.x" to `binaryTargets` in the "schema.prisma" file and run `prisma generate` after saving it:
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+The following locations have been searched:
+  /home/ferdinand/nexor/nexor/nexor-back/node_modules/.prisma/client
+  /home/ferdinand/nexor/nexor/nexor-back/node_modules/@prisma/client
+  /Users/eydrent/Documents/web3summit/nexor/nexor-back/node_modules/@prisma/client
+  /tmp/prisma-engines
+  /home/ferdinand/nexor/nexor/nexor-back/prisma
